@@ -1,12 +1,23 @@
 
 # Tensorflow Object Detection Detector
 
-import numpy as np
-import tensorflow as tf
-import cv2
-import time
+# To run multiple processing threads 
+from threading import Thread
 
-# Frames per seconds 
+import numpy as np
+# Tensorflow import for machine classification
+import tensorflow as tf
+# Computer Vision
+import cv2
+# OLD imported time 
+import time
+# import datetime
+
+
+# This is to get FPS function
+from Camera import FPS
+# This is to get the WebcamVideoStream function 
+from Camera import WebcamVideoStream
 
 #-------------------------------------------------------------------------------------------------
 
@@ -93,9 +104,75 @@ class DetectorAPI:
 
 # ---------------------------------------------------------------------------------------------------
 
-# Program Main
+# # Program Main which is run when the program is ran 
+# if __name__ == "__main__":
+#     # Path to model frozen_inference_graph.pb
+#     model_path = '/Users/samontetan/Documents/GitHub/HumanDetection/faster_rcnn_inception_v2_coco_2018_01_28/frozen_inference_graph.pb'
+    
+#     odapi = DetectorAPI(path_to_ckpt=model_path)
+#     # Threshhold to determine if a human is a human 
+#     threshold = 0.80
+#     # Input for a video 
+#     # cap = cv2.VideoCapture('/Users/samontetan/Documents/GitHub/HumanDetection/test.mp4')
+
+#     # Added to import video from a camera
+#     cap = cv2.VideoCapture(0)
+
+#     # this keeps track of the last time a frame was processed
+#     last_recorded_time = time.time() 
+
+#     # Iterate through video frames 
+#     # TODO add a false condition for loop 
+#     while True:
+
+#         # grab the current time
+#         curr_time = time.time() 
+
+#         # Retrieve a video 
+#         r, img = cap.read(0)
+#         img = cv2.resize(img, (1280, 720))
+
+#         # Tally the number of humans in the current view 
+#         count = 0
+
+#         # it has been at least 2 seconds. Process image every 2 seconds 
+#         if curr_time - last_recorded_time >= 2.0: 
+
+#             # Process the frames 
+#             boxes, scores, classes, num = odapi.processFrame(img)
+
+#             # Visualization of the results of a detection.
+#             for i in range(len(boxes)):
+#                 # Represents a human
+#                 if classes[i] == 1 and scores[i] > threshold:
+                    
+#                     # Location to box object 
+#                     box = boxes[i]
+#                     cv2.rectangle(img,(box[1],box[0]),(box[3],box[2]),(255,0,0),2)
+
+#                     # Add a person to the current view tally 
+#                     count = count + 1
+
+#             # Added Print Statement to display the number of humans in the current view 
+#             print("Number of Humans: ", count)
+
+#             # Save last recorded time as current time 
+#             last_recorded_time = curr_time
+
+#         # Show a frame video 
+#         cv2.imshow("preview", img)
+#         # Escape character to close video 
+#         key = cv2.waitKey(1)
+#         # Break from loop when the user presses 'q' 
+#         if key & 0xFF == ord('q'):
+#             break
+
+# ---------------------------------------------------------------------------------------------------
+
+# Program Main which is run when the program is ran 
 if __name__ == "__main__":
-    # Path to model frozen_inference_graph.pb
+
+     # Path to model frozen_inference_graph.pb
     model_path = '/Users/samontetan/Documents/GitHub/HumanDetection/faster_rcnn_inception_v2_coco_2018_01_28/frozen_inference_graph.pb'
     
     odapi = DetectorAPI(path_to_ckpt=model_path)
@@ -104,31 +181,38 @@ if __name__ == "__main__":
     # Input for a video 
     # cap = cv2.VideoCapture('/Users/samontetan/Documents/GitHub/HumanDetection/test.mp4')
 
-    # Added to import video from a camera
-    cap = cv2.VideoCapture(0)
+    # created a *threaded* video stream, allow the camera sensor to warmup,
+    # and start the FPS counter
+    print("[INFO] sampling THREADED frames from webcam...")
+    vs = WebcamVideoStream(src=0).start()
+    fps = FPS().start()
 
     # this keeps track of the last time a frame was processed
     last_recorded_time = time.time() 
-
-    # Iterate through video frames 
-    # TODO add a false condition for loop 
+    
+    # loop over some frames...this time using the threaded stream
     while True:
+        # grab the frame from the threaded video stream and resize it
+        # to have a maximum width of 400 pixels
+        frame = vs.read()
+        frame = cv2.resize(frame, (1280, 720))
 
         # grab the current time
         curr_time = time.time() 
-
-        # Retrieve a video 
-        r, img = cap.read(0)
-        # img = cv2.resize(img, (1280, 720))
-
-        # Process the frames 
-        boxes, scores, classes, num = odapi.processFrame(img)
 
         # Tally the number of humans in the current view 
         count = 0
 
         # it has been at least 2 seconds. Process image every 2 seconds 
-        if curr_time - last_recorded_time >= 2.0: 
+        if curr_time - last_recorded_time >= 4.0: 
+
+             # Save last recorded time as current time 
+            last_recorded_time = curr_time
+
+            print("HERE")
+
+            # Process the frames 
+            boxes, scores, classes, num = odapi.processFrame(frame)
 
             # Visualization of the results of a detection.
             for i in range(len(boxes)):
@@ -137,7 +221,7 @@ if __name__ == "__main__":
                     
                     # Location to box object 
                     box = boxes[i]
-                    cv2.rectangle(img,(box[1],box[0]),(box[3],box[2]),(255,0,0),2)
+                    cv2.rectangle(frame,(box[1],box[0]),(box[3],box[2]),(255,0,0),2)
 
                     # Add a person to the current view tally 
                     count = count + 1
@@ -145,14 +229,26 @@ if __name__ == "__main__":
             # Added Print Statement to display the number of humans in the current view 
             print("Number of Humans: ", count)
 
-            # Save last recorded time as current time 
-            last_recorded_time = curr_time
-
         # Show a frame video 
-        cv2.imshow("preview", img)
+        cv2.imshow("preview", frame)
+
         # Escape character to close video 
         key = cv2.waitKey(1)
         # Break from loop when the user presses 'q' 
         if key & 0xFF == ord('q'):
             break
+    
+        # update the FPS counter
+        fps.update()
+        # wait a numebr of seconds
+        # time.sleep(2)
+    
+    # stop the timer and display FPS information
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+    
+    # do a bit of cleanup
+    cv2.destroyAllWindows()
+    vs.stop()
 
