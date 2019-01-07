@@ -1,3 +1,3 @@
 # HumanDetection
 
-This uses TensorFlow and OpenCV
+This uses OpenCV
