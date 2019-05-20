@@ -8,3 +8,5 @@ This uses OpenCV Projects that uses models to detect objects. The current model 
 
 # Journal: 
 2019.01.07 Upaded project name and read me to include references
+
+[20180924](https://www.youtube.com/watch?v=ff7WgyQ5Nkk&feature=youtu.be)
